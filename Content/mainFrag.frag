@@ -27,9 +27,6 @@ uniform sampler2D texture;
 // constants
 //uniform vec3 lightdir ;//= vec3(-0.707,-0.707,0);
 
-// colour of each pixel to be displayed
-uniform vec3 col;
-
 // texture coordinates inherited from  vertex shader
 varying vec2 varyingTextureCoordinate;
 
@@ -37,7 +34,7 @@ varying vec2 varyingTextureCoordinate;
 varying vec3 normals;
 
 const vec3 specular_color = vec3(1.0, 1.0, 1.0);
-const vec3 ambient_color = vec3(0.3, 0.0, 0.0);
+uniform vec3 ambient_color;// = vec3(0.3, 0.0, 0.0);
 const vec3 diffuse_color = vec3(0.5, 0.0, 0.0);
 const vec3 light_position = vec3(0.0, 0.0, 0.0);
 void main() {

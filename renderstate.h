@@ -10,10 +10,9 @@
 #include <QVector3D>
 #include <QTimer>
 #include "Objects/ModelMesh.h"
-#include "Objects/Node.h"
+#include "./currentscene.h"
 
-class RenderState : public QOpenGLWidget, protected QOpenGLFunctions
-{
+class RenderState : public QOpenGLWidget, protected QOpenGLFunctions {
      Q_OBJECT
 public:
     explicit RenderState(QWidget *parent = 0);
@@ -27,21 +26,22 @@ protected:
     void wheelEvent(QWheelEvent *);
     void mouseReleaseEvent(QMouseEvent *);
 private:
-    // Reuse shaderprogram for all child classes
-    //QGLShaderProgram *shaderProgram;// Cannot be parameter of a function (violation)
-    // Projection for all child classes
     QMatrix4x4 pMatrix; // dynamic memory control not needed
     void DrawModel(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
-    void DrawLine(QVector3D , QVector3D ,QMatrix4x4 ,QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/,QVector3D );
+    void DrawLine(QVector3D point1,
+                  QVector3D point2,
+                  QMatrix4x4 world_view_projection,
+                  QMatrix4x4 model_view_projection,
+                  QVector3D color);
     void ShaderDraw(ModelMesh *);
     void UpdateShaders(QMatrix4x4 ,QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
     void LoadContent();
+    void draw_grid();
     QSize m_viewportSize;
     QOpenGLShaderProgram *m_program;
     qreal m_t;
     QVector3D *m_position, *m_clicked_position;
     QVector<QOpenGLTexture *> m_textures;
-    QVector<Node *> m_nodes;
     ModelMesh *box,
               *sky,
               *wagen,
@@ -60,8 +60,6 @@ private:
     QVector3D intersectYnull(QVector3D,QVector3D);
 
     bool m_mousedown_right;
-private slots:
-    void add_node(QString *);
 };
 
 #endif // RENDERSTATE_H
