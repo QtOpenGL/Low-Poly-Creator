@@ -1,1 +1,12 @@
 *.user
+*.gz(busy)
+*.aux
+*.idx
+*.lof
+*.out
+*.toc
+*.acn
+*.bbl
+*.blg
+*.ist
+*.gz
