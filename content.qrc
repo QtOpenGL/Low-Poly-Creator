@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Content/background.png</file>
+        <file>Content/background.xcf</file>
+        <file>Content/blueback.png</file>
+        <file alias="Cube">Content/cube.obj</file>
+        <file alias="Fragment">Content/mainFrag.frag</file>
+        <file alias="Vertex">Content/mainVert.vert</file>
+        <file alias="Plane">Content/plane.obj</file>
+        <file>Content/Premises.pvc</file>
+        <file alias="Sky">Content/sky.obj</file>
+        <file alias="Texture0">Content/sky.png</file>
+        <file alias="Sphere">Content/sphere.obj</file>
+        <file>Content/untitled.obj</file>
+    </qresource>
+</RCC>
