@@ -27,7 +27,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *);
   private:
     QMatrix4x4 pMatrix; // dynamic memory control not needed
-    void DrawModel(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
+    void draw_model(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
     void DrawLine(QVector3D point1,
                   QVector3D point2,
                   QMatrix4x4 world_view_projection,
@@ -40,26 +40,27 @@ protected:
     QSize m_viewportSize;
     QOpenGLShaderProgram *m_program;
     qreal m_t;
-    QVector3D *m_position, *m_clicked_position;
-    QVector<QOpenGLTexture *> m_textures;
-    ModelMesh *box,
-              *sky,
-              *wagen,
-              *node,
-              *m_plane;
-    int m_mouse_x, m_mouse_y, m_dmouse_x,m_dmouse_y;
+    QVector3D *position,
+              *clicked_position;
+    ModelMesh *box;
+    int mouse_x,
+        mouse_y,
+        dmouse_x,
+        dmouse_y;
     float m_mouse_zoom;
+
     // define a view matrix
     QMatrix4x4 vMatrix;
     QVector3D *m_current_position;
     QVector3D m_position_camera, m_camera_prev, m_raycast;
+
     // raycasting prototype
     QVector3D mouseRayCast(int, int, QMatrix4x4);
 
     // intersection with y=0
-    QVector3D intersectYnull(QVector3D,QVector3D);
+    QVector3D intersectYnull(QVector3D, QVector3D);
     QMatrix4x4 camera_transformation;
-    bool m_mousedown_right;
+    bool mousedown_right;
 
   signals:
     void update_frame();

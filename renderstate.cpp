@@ -2,13 +2,13 @@
 
 RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
     m_program(0),
-    m_mouse_x(0),
-    m_mouse_y(0),
+    mouse_x(0),
+    mouse_y(0),
     m_mouse_zoom(1000.0f),
     m_position_camera(QVector3D()),
     m_camera_prev(QVector3D()),
     m_raycast(QVector3D()),
-    m_mousedown_right(false)
+    mousedown_right(false)
 {
     // enable antialiasing
     QSurfaceFormat format;
@@ -18,15 +18,12 @@ RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
   //  format.setVersion(3, 2);
     //format.setProfile(QSurfaceFormat::CoreProfile);
     this->setFormat(format);
-    m_clicked_position = new QVector3D(0,0,0);
+    clicked_position = new QVector3D(0, 0, 0);
     // set the current mouse position in 3D
-    m_current_position = new QVector3D(0,0,0);
-
-    // clear the textures
-    m_textures.clear();
+    m_current_position = new QVector3D(0, 0, 0);
 
     // set the position to initial null vector
-    m_position = new QVector3D(0,0,0);
+    position = new QVector3D(0, 0, 0);
 
     // set mouse tracking
     setMouseTracking(true);
@@ -37,12 +34,6 @@ RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
 
 void RenderState::initializeGL() {
     initializeOpenGLFunctions();
-
-     // texture test
-    QOpenGLTexture *texture = new QOpenGLTexture(QImage("://Texture0").mirrored());
-    texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
-    m_textures.append(texture);
 }
 
 void RenderState::update_frame_from_extern() {
@@ -51,30 +42,28 @@ void RenderState::update_frame_from_extern() {
 
 void RenderState::mouseMoveEvent(QMouseEvent *event) {
     // alert mouse event's position (x)
-    m_mouse_x = event->x();
+    mouse_x = event->x();
 
     // alert mouse event's position (x)
-    m_mouse_y = event->y();
+    mouse_y = event->y();
 
-    m_raycast = mouseRayCast(m_mouse_x, m_mouse_y, vMatrix);
-    if(m_mousedown_right)
-    {
-        m_position_camera.setX(m_clicked_position->x()-m_current_position->x());
-        m_position_camera.setY(m_clicked_position->y()-m_current_position->y());
-        m_position_camera.setZ(m_clicked_position->z()-m_current_position->z());
-        // pan view
-        m_camera_prev.setX(m_camera_prev.x()-m_position_camera.x());
-        m_camera_prev.setY(m_camera_prev.y()-m_position_camera.y());
-        m_camera_prev.setZ(m_camera_prev.z()-m_position_camera.z());
-    m_position_camera = QVector3D();
-
+    m_raycast = mouseRayCast(mouse_x, mouse_y, vMatrix);
+    if(mousedown_right) {
+      m_position_camera.setX(this->clicked_position->x() - m_current_position->x());
+      m_position_camera.setY(this->clicked_position->y() - m_current_position->y());
+      m_position_camera.setZ(this->clicked_position->z() - m_current_position->z());
+      // pan view
+      m_camera_prev.setX(m_camera_prev.x()-m_position_camera.x());
+      m_camera_prev.setY(m_camera_prev.y()-m_position_camera.y());
+      m_camera_prev.setZ(m_camera_prev.z()-m_position_camera.z());
+      m_position_camera = QVector3D();
     }
     // update openGL widget
     update();
 }
 
 void RenderState::mouseReleaseEvent(QMouseEvent *) {
- m_mousedown_right = false;
+ mousedown_right = false;
  update();
 }
 
@@ -103,9 +92,10 @@ void RenderState::mousePressEvent(QMouseEvent *event) {
     } else
         if(event->button() == Qt::RightButton)
         {
-            m_mousedown_right = true;
-            m_clicked_position = new QVector3D(m_current_position->x(),m_current_position->y(),m_current_position->z());
-
+            mousedown_right = true;
+            this->clicked_position = new QVector3D(m_current_position->x(),
+                                                   m_current_position->y(),
+                                                   m_current_position->z());
         }
 }
 
@@ -161,9 +151,7 @@ void RenderState::LoadContent() {
     initializeOpenGLFunctions();
     //load meshes
     box = new ModelMesh(":/Sphere");
-    box->load_sphere(0.5, 12, 12);
-    node = new ModelMesh(":/Sphere");
-    wagen = new ModelMesh(":/Cube");
+    box->load_sphere(0.5, 12, 6);
     // load shaders
     m_program = new QOpenGLShaderProgram();
     m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, "://Vertex");
@@ -199,25 +187,25 @@ void RenderState::paintGL() {
   vMatrix.translate(m_camera_prev);
 
   // return the position of the ray intersection with the y-axis
-  QVector3D Pos  = intersectYnull(m_raycast, QVector3D(0, m_mouse_zoom, 0)-m_camera_prev );
+  QVector3D Pos  = intersectYnull(m_raycast, QVector3D(0, m_mouse_zoom, 0) - m_camera_prev );
   // update current position
   m_current_position->setX(Pos.x());
   m_current_position->setZ(Pos.z());
   m_current_position->setY(Pos.y());
 
   // draw line if right clicked
-  if(m_mousedown_right)
-    DrawLine(*m_clicked_position, *m_current_position, vMatrix, QMatrix4x4(), QVector3D(1,1,1));
+  if(mousedown_right)
+    DrawLine(*this->clicked_position, *m_current_position, vMatrix, QMatrix4x4(), QVector3D(1,1,1));
 
   for (int a = 0; a < CurrentScene::mesh_count(); a++) {
     QMatrix4x4 translation;
     translation.translate(*CurrentScene::get_position(a));
-    DrawModel(CurrentScene::mesh_draw(a), vMatrix, translation,QMatrix4x4(),QVector3D(0.3, 0.0, 0.0));
+    draw_model(CurrentScene::mesh_draw(a), vMatrix, translation,QMatrix4x4(),QVector3D(0.3, 0.0, 0.0));
   }
   draw_grid();
   QMatrix4x4 translation;
   translation.translate(Pos);
-  DrawModel(node, vMatrix,translation, QMatrix4x4(),QVector3D());
+  draw_model(box, vMatrix,translation, QMatrix4x4(),QVector3D());
   // release the program for this frame
   m_program->release();
   // disable the cullmode for the frame
@@ -231,9 +219,6 @@ void RenderState::paintGL() {
 void RenderState::UpdateShaders(QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
     // bind the current shader code
     m_program->bind();
-
-    // bind the texture for the object
-    m_textures.value(0)->bind();
 
     // update the colour of the object
     m_program->setUniformValue("ambient_color", color);
@@ -319,7 +304,7 @@ void RenderState::DrawLine(QVector3D point1,
     temp_vertices.clear();
 }
 
-void RenderState::DrawModel(ModelMesh *box, QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
+void RenderState::draw_model(ModelMesh *box, QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
      UpdateShaders(wvp, mvp, rotate, color);
      ShaderDraw(box);
 }

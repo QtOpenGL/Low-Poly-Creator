@@ -110,7 +110,7 @@ bool ModelMesh::load_sphere(float radius, int stacks, int slices) {
   for ( int sl = 0; sl < slices; sl++) {
     for ( int st = 0; st < stacks; st++) {
       vertices.push_back(QVector3D(radius * sin(PI_slices * sl) * sin(PI_stacks * st),
-                                   radius * sin(PI_stacks * st),
+                                   radius * cos(PI_stacks * st),
                                    radius * cos(PI_slices * sl) * sin(PI_stacks * st)));
     }
   }
