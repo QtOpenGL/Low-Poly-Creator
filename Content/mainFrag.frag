@@ -36,11 +36,12 @@ varying vec3 normals;
 const vec3 specular_color = vec3(1.0, 1.0, 1.0);
 uniform vec3 ambient_color;// = vec3(0.3, 0.0, 0.0);
 const vec3 diffuse_color = vec3(0.5, 0.0, 0.0);
-const vec3 light_position = vec3(0.0, 0.0, 0.0);
+const vec3 light_position = vec3(0.0, 5.0, 0.0);
+
 void main() {
     // use a default light direction this can be changed later
     /* may change later */
-    vec3 lightdir = normalize(light_position - posi.xyz);
+    vec3 lightdir = vec3(0.5, 0.5, 0.5);//normalize(light_position - posi.xyz);
 
   //  vec3 reflectDir = reflect(-lightdir, normalize(normals));
   //  vec3 viewDir = normalize(-position_eye.xyz);

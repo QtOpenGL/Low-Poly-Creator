@@ -21,9 +21,12 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    void connect_updates_to_widgets();
+
 signals:
     void place_node(); // allows a node to be placed
     void node_links(); // allow nodes to be linkeds
+    void change_view(int type);
 };
 
 #endif // MAINWINDOW_H

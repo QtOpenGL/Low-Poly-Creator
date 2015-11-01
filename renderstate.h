@@ -25,7 +25,7 @@ protected:
     void mousePressEvent(QMouseEvent *);
     void wheelEvent(QWheelEvent *);
     void mouseReleaseEvent(QMouseEvent *);
-private:
+  private:
     QMatrix4x4 pMatrix; // dynamic memory control not needed
     void DrawModel(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
     void DrawLine(QVector3D point1,
@@ -58,8 +58,15 @@ private:
 
     // intersection with y=0
     QVector3D intersectYnull(QVector3D,QVector3D);
-
+    QMatrix4x4 camera_transformation;
     bool m_mousedown_right;
+
+  signals:
+    void update_frame();
+
+  private slots:
+    void update_frame_from_extern();
+    void change_camara(int type);
 };
 
 #endif // RENDERSTATE_H

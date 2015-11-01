@@ -17,17 +17,17 @@ class QVector2D;
 class QVector3D;
 class QString;
 
-class ModelMesh
-{
+class ModelMesh {
 public:
     ModelMesh(QString);
     ~ModelMesh();
     void Draw();
-    QVector<QVector2D> m_textureCoordinates;
-    QVector<QVector3D> m_vertices;
-    QVector<QVector3D> m_normals;
-    QVector<int> m_vertexIndices, m_uvIndices, m_normalIndices;
+    QVector<QVector2D> texture_coordinates;
+    QVector<QVector3D> vertices;
+    QVector<QVector3D> normals;
+    QVector<int> vertex_indices, uv_indices, normal_indices;
     bool LoadOBJ(QString);
+    bool load_sphere(float radius, int stacks, int slices);
 };
 
 #endif // MODELMESH_H

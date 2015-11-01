@@ -57,17 +57,15 @@ void RenderState::mouseMoveEvent(QMouseEvent *event) {
     m_mouse_y = event->y();
 
     m_raycast = mouseRayCast(m_mouse_x, m_mouse_y, vMatrix);
-    if(m_mousedown_right)
-    {
-        m_position_camera.setX(m_clicked_position->x()-m_current_position->x());
-        m_position_camera.setY(m_clicked_position->y()-m_current_position->y());
-        m_position_camera.setZ(m_clicked_position->z()-m_current_position->z());
-        // pan view
-        m_camera_prev.setX(m_camera_prev.x()-m_position_camera.x());
-        m_camera_prev.setY(m_camera_prev.y()-m_position_camera.y());
-        m_camera_prev.setZ(m_camera_prev.z()-m_position_camera.z());
-    m_position_camera = QVector3D();
-
+    if(m_mousedown_right) {
+      m_position_camera.setX(m_clicked_position->x()-m_current_position->x());
+      m_position_camera.setY(m_clicked_position->y()-m_current_position->y());
+      m_position_camera.setZ(m_clicked_position->z()-m_current_position->z());
+      // pan view
+      m_camera_prev.setX(m_camera_prev.x()-m_position_camera.x());
+      m_camera_prev.setY(m_camera_prev.y()-m_position_camera.y());
+      m_camera_prev.setZ(m_camera_prev.z()-m_position_camera.z());
+      m_position_camera = QVector3D();
     }
     // update openGL widget
     update();
