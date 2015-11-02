@@ -66,6 +66,15 @@ void RenderState::update_frame_from_extern() {
 }
 
 void RenderState::mouseMoveEvent(QMouseEvent *event) {
+  if ( this->edit_vertex_enable && this->mousedown_left) {
+    for (int a = 0; a < CurrentScene::mesh_count(); a++) {
+        QMatrix4x4 translation;
+        translation.translate(*CurrentScene::get_position(a));
+      CurrentScene::mesh_draw(a)->select_vertices_box(*this->clicked_position,
+                                                      *this->current_position,
+                                                      translation);
+    }
+    }
   // alert mouse event's position (x)
   mouse_x = event->x();
 
@@ -315,11 +324,9 @@ void RenderState::paintGL() {
   this->current_position->setZ(Pos.z());
   this->current_position->setY(Pos.y());
 
-  // draw line if right clicked
-  if(mousedown_right || mousedown_left) {
+  // draw select box
+  if ( (this->mousedown_left) && (this->edit_vertex_enable) ) {
     draw_flat_box(*this->clicked_position, *this->current_position);
-   // draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
-    //draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
   }
 
   for (int a = 0; a < CurrentScene::mesh_count(); a++) {
@@ -330,6 +337,18 @@ void RenderState::paintGL() {
                translation,
                QMatrix4x4(),
                QVector3D(0.3, 0.0, 0.0));
+
+
+    draw_model_vertices(CurrentScene::mesh_draw(a),
+                        this->view_matrix,
+                        translation,
+                        QMatrix4x4(),
+                        QVector3D(1.0, 0.0, 0.0), true);
+    draw_model_vertices(CurrentScene::mesh_draw(a),
+                        this->view_matrix,
+                        translation,
+                        QMatrix4x4(),
+                        QVector3D(1.0, 1.0, 1.0), false);
   }
   draw_grid();
   QMatrix4x4 translation;
@@ -391,7 +410,7 @@ void RenderState::draw_flat_box(QVector3D position1, QVector3D position2) {
 
 }
 
-void RenderState::draw_shader(ModelMesh *mesh) {
+void RenderState::draw_shader(ModelMesh *mesh, int type) {
 
     // convert the qstring to c-string for opengl purposes, this is the vertex variable in the shader files
     const char *vert ="vertex";//= vertex.toStdString().c_str();
@@ -419,10 +438,13 @@ void RenderState::draw_shader(ModelMesh *mesh) {
 
     // enable the texture attribute
     this->shader_program->enableAttributeArray(textureCoordinate);
-
     // draw the opengl vertices
-    this->current_mesh->draw_mesh();
-
+    switch ( type ) {
+      case 0: this->current_mesh->draw_mesh(); break;
+      case 1: this->current_mesh->draw_vertices(3.0f); break;
+      case 2: this->current_mesh->draw_vertices_selected(3.0f); break;
+      default: this->current_mesh->draw_mesh(); break;
+    }
     // disable the vertex attributes
     this->shader_program->disableAttributeArray(vert);
 
@@ -464,7 +486,22 @@ void RenderState::draw_model(ModelMesh *mesh, QMatrix4x4 wvp, QMatrix4x4 mvp, QM
                        mvp,
                        rotate,
                        color);
-  this->draw_shader(mesh);
+  this->draw_shader(mesh, 0);
+}
+
+void RenderState::draw_model_vertices(ModelMesh *mesh,
+                                      QMatrix4x4 wvp,
+                                      QMatrix4x4 mvp,
+                                      QMatrix4x4 rotate,
+                                      QVector3D color, bool selected) {
+  this->update_shaders(wvp,
+                       mvp,
+                       rotate,
+                       color);
+  if ( !selected )
+   this->draw_shader(mesh, 1);
+  else
+   this->draw_shader(mesh, 2);
 }
 
 QVector3D RenderState::mouse_raycast(int mx,

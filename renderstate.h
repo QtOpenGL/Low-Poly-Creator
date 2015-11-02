@@ -28,13 +28,23 @@ protected:
     void mouseReleaseEvent(QMouseEvent *);
 
   private:
-    void draw_model(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4, QVector3D );
+    void draw_model(ModelMesh *mesh,
+                    QMatrix4x4,
+                    QMatrix4x4,
+                    QMatrix4x4,
+                    QVector3D color);
+    void draw_model_vertices(ModelMesh *mesh,
+                    QMatrix4x4,
+                    QMatrix4x4,
+                    QMatrix4x4,
+                    QVector3D color,
+                    bool selected);
     void draw_line(QVector3D point1,
                    QVector3D point2,
                    QMatrix4x4 world_view_projection,
                    QMatrix4x4 model_view_projection,
                    QVector3D color);
-    void draw_shader(ModelMesh *);
+    void draw_shader(ModelMesh * mesh, int type);
     void draw_flat_box(QVector3D position1, QVector3D position2);
     void update_shaders(QMatrix4x4, QMatrix4x4, QMatrix4x4, QVector3D );
     void load_content();

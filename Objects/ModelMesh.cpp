@@ -22,6 +22,7 @@ bool ModelMesh::load_obj_file(QString file) {
   texture_coordinates.clear();
   normals.clear();
   vertex_indices.clear();
+  selected_vertices.clear();
   QVector< QVector3D > temp_vertices;
   QVector< QVector2D > temp_uvs;
   QVector< QVector3D > temp_normals;
@@ -129,6 +130,21 @@ bool ModelMesh::load_sphere(float radius, int stacks, int slices) {
   return true;
 }
 
+void ModelMesh::select_vertices_box(QVector3D position1, QVector3D position2, QMatrix4x4 modifier) {
+  this->selected_vertices.clear();
+  float max_x = position1.x() > position2.x() ? position1.x() : position2.x();
+  float min_x = position1.x() < position2.x() ? position1.x() : position2.x();
+  float max_y = position1.y() > position2.y() ? position1.y() : position2.y();
+  float min_y = position1.y() < position2.y() ? position1.y() : position2.y();
+  for ( int l = 0; l < vertices.count(); l++ ) {
+      QVector3D transformed = modifier * this->vertices.value(l);
+      qDebug() << transformed << this->vertices.value(l);
+    if  ( (min_x < transformed.x() && transformed.x() < max_x) &&
+          (min_y < transformed.y() && transformed.y() < max_y))
+        this->selected_vertices.append(l);
+  }
+}
+
 ModelMesh::~ModelMesh() {
    texture_coordinates.detach();
    vertices.detach();
@@ -142,15 +158,29 @@ ModelMesh::ModelMesh(QString file) {
    load_obj_file(file);
 }
 
-void ModelMesh::draw_mesh() {
-  glPointSize(3.0f);
-    // Draw the vertices as triangles, not linked triangles, each triangle is seperated from the other
-  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+void ModelMesh::draw_vertices_selected(float point_size) {
+  glPointSize(point_size + 4.0);
+  for(int i = 0; i < this->selected_vertices.count(); i++){
+    glBegin(GL_POINTS);
+    glVertex3f(vertices.value(this->selected_vertices.value(i)).x(),
+               vertices.value(this->selected_vertices.value(i)).y(),
+               vertices.value(this->selected_vertices.value(i)).z());
+    glEnd();
+  }
+}
 
+void ModelMesh::draw_vertices(float point_size) {
+  glPointSize(point_size);
   for(int i = 0; i < vertices.size(); i++){
     glBegin(GL_POINTS);
-    //glColor3f(1.0,0.0,0.1);
     glVertex3f(vertices.value(i).x(), vertices.value(i).y(), vertices.value(i).z());
     glEnd();
   }
+}
+
+void ModelMesh::draw_mesh() {
+    // Draw the vertices as triangles, not linked triangles, each triangle is seperated from the other
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+
 }
