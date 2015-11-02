@@ -130,19 +130,41 @@ bool ModelMesh::load_sphere(float radius, int stacks, int slices) {
   return true;
 }
 
-void ModelMesh::select_vertices_box(QVector3D position1, QVector3D position2, QMatrix4x4 modifier) {
+bool ModelMesh::select_vertices_box(QVector3D position1, QVector3D position2, QMatrix4x4 modifier, int view_type) {
+  bool vertex_selected = false;
   this->selected_vertices.clear();
   float max_x = position1.x() > position2.x() ? position1.x() : position2.x();
   float min_x = position1.x() < position2.x() ? position1.x() : position2.x();
   float max_y = position1.y() > position2.y() ? position1.y() : position2.y();
   float min_y = position1.y() < position2.y() ? position1.y() : position2.y();
+  float max_z = position1.z() > position2.z() ? position1.z() : position2.z();
+  float min_z = position1.z() < position2.z() ? position1.z() : position2.z();
   for ( int l = 0; l < vertices.count(); l++ ) {
-      QVector3D transformed = modifier * this->vertices.value(l);
-      qDebug() << transformed << this->vertices.value(l);
-    if  ( (min_x < transformed.x() && transformed.x() < max_x) &&
-          (min_y < transformed.y() && transformed.y() < max_y))
+    QVector3D transformed = modifier * this->vertices.value(l);
+    switch (view_type) {
+      case 2 :
+      if ((min_x < transformed.x() && transformed.x() < max_x) &&
+          (min_y < transformed.y() && transformed.y() < max_y)) {
+          this->selected_vertices.append(l);
+          vertex_selected = true;
+      } break;
+      case 0 :
+      if ( (min_x < transformed.x() && transformed.x() < max_x) &&
+        (min_z < transformed.z() && transformed.z() < max_z)) {
         this->selected_vertices.append(l);
+        vertex_selected = true;
+      } break;
+      case 1 :
+      if ((min_y < transformed.y() && transformed.y() < max_y) &&
+          (min_z < transformed.z() && transformed.z() < max_z)) {
+        this->selected_vertices.append(l);
+        vertex_selected = true;
+      } break;
+    }
   }
+   if (vertex_selected)
+  qDebug() << this->selected_vertices;
+  return vertex_selected;
 }
 
 ModelMesh::~ModelMesh() {
@@ -156,6 +178,10 @@ ModelMesh::~ModelMesh() {
 
 ModelMesh::ModelMesh(QString file) {
    load_obj_file(file);
+}
+
+ModelMesh::ModelMesh() {
+
 }
 
 void ModelMesh::draw_vertices_selected(float point_size) {

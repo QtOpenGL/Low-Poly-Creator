@@ -21,6 +21,7 @@ class QString;
 class ModelMesh {
 public:
     ModelMesh(QString);
+    ModelMesh();
     ~ModelMesh();
     void draw_mesh();
     void draw_vertices(float point_size);
@@ -31,7 +32,10 @@ public:
     QVector<int> vertex_indices, uv_indices, normal_indices;
     bool load_obj_file(QString file_name);
     bool load_sphere(float radius, int stacks, int slices);
-    void select_vertices_box(QVector3D position1, QVector3D position2, QMatrix4x4);
+    bool select_vertices_box(QVector3D position1,
+                             QVector3D position2,
+                             QMatrix4x4 modifier,
+                             int view_type);
     QVector<int> selected_vertices;
 };
 

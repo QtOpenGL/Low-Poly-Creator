@@ -66,15 +66,20 @@ void RenderState::update_frame_from_extern() {
 }
 
 void RenderState::mouseMoveEvent(QMouseEvent *event) {
+  emit this->update_frame();
   if ( this->edit_vertex_enable && this->mousedown_left) {
     for (int a = 0; a < CurrentScene::mesh_count(); a++) {
-        QMatrix4x4 translation;
-        translation.translate(*CurrentScene::get_position(a));
-      CurrentScene::mesh_draw(a)->select_vertices_box(*this->clicked_position,
-                                                      *this->current_position,
-                                                      translation);
+      QMatrix4x4 translation;
+      translation.translate(*CurrentScene::get_position(a));
+
+      if (CurrentScene::mesh_draw(a)->select_vertices_box(*this->clicked_position,
+                                                          *this->current_position,
+                                                          translation,
+                                                          this->type_of_view) ) {
+          qDebug() << CurrentScene::mesh_draw(a);
+      }
     }
-    }
+  }
   // alert mouse event's position (x)
   mouse_x = event->x();
 
@@ -337,26 +342,28 @@ void RenderState::paintGL() {
                translation,
                QMatrix4x4(),
                QVector3D(0.3, 0.0, 0.0));
-
-
     draw_model_vertices(CurrentScene::mesh_draw(a),
                         this->view_matrix,
                         translation,
                         QMatrix4x4(),
                         QVector3D(1.0, 0.0, 0.0), true);
+
     draw_model_vertices(CurrentScene::mesh_draw(a),
                         this->view_matrix,
                         translation,
                         QMatrix4x4(),
                         QVector3D(1.0, 1.0, 1.0), false);
+
   }
   draw_grid();
-  QMatrix4x4 translation;
-  translation.translate(Pos);
-  draw_model(this->current_mesh,this->view_matrix,
-             translation,
-             QMatrix4x4(),
-             QVector3D());
+  if ( this->add_vertex_enable ) {
+    QMatrix4x4 translation;
+    translation.translate(Pos);
+    draw_model(this->current_mesh,this->view_matrix,
+               translation,
+               QMatrix4x4(),
+               QVector3D());
+  }
   // release the program for this frame
   this->shader_program->release();
   // disable the cullmode for the frame
@@ -428,21 +435,21 @@ void RenderState::draw_shader(ModelMesh *mesh, int type) {
     this->shader_program->enableAttributeArray(vert);
 
     // load the normals to the shaders
-    this->shader_program->setAttributeArray(normals, this->current_mesh->normals.constData());
+    this->shader_program->setAttributeArray(normals, mesh->normals.constData());
 
     // enable the shader attribute( normals )
     this->shader_program->enableAttributeArray(normals);
 
     // load the texture coordinates to the shaders
-    this->shader_program->setAttributeArray(textureCoordinate, this->current_mesh->texture_coordinates.constData());
+    this->shader_program->setAttributeArray(textureCoordinate, mesh->texture_coordinates.constData());
 
     // enable the texture attribute
     this->shader_program->enableAttributeArray(textureCoordinate);
     // draw the opengl vertices
     switch ( type ) {
-      case 0: this->current_mesh->draw_mesh(); break;
-      case 1: this->current_mesh->draw_vertices(3.0f); break;
-      case 2: this->current_mesh->draw_vertices_selected(3.0f); break;
+      case 0: mesh->draw_mesh(); break;
+      case 1: mesh->draw_vertices(3.0f); break;
+      case 2: mesh->draw_vertices_selected(3.0f); break;
       default: this->current_mesh->draw_mesh(); break;
     }
     // disable the vertex attributes
@@ -541,7 +548,9 @@ QVector3D RenderState::intersect_plane(QVector3D u_dir,
 
 void RenderState::add_vertices() {
   if ( this->add_vertex_enable ) {
-    CurrentScene::add_mesh(this->current_mesh,
+      ModelMesh *mesh = new ModelMesh();
+      *mesh = *this->current_mesh;
+    CurrentScene::add_mesh(mesh,
                            new QVector3D(this->current_position->x(),
                                          this->current_position->y(),
                                          this->current_position->z()));
