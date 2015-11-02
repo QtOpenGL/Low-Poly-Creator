@@ -1,6 +1,7 @@
-#include "currentscene.h"
+#include "./currentscene.h"
 QVector<ModelMesh *> CurrentScene::meshes;
 QVector<QVector3D *> CurrentScene::positions;
+
 CurrentScene::CurrentScene() {
 
 }

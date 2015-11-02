@@ -51,6 +51,7 @@ protected:
     void draw_grid();
     void edit_vertices();
     void add_vertices();
+    void translate_vertices();
     int sign(int x);
 
     // raycasting prototype
@@ -90,7 +91,8 @@ protected:
          mousedown_left,
          edit_vertex_enable,
          remove_vertex_enable,
-         add_vertex_enable;
+         add_vertex_enable,
+         translate_enable;
 
   signals:
     void update_frame();
@@ -101,6 +103,7 @@ protected:
     void enable_vertex_edit(bool value);
     void enable_vertex_add(bool value);
     void enable_vertex_remove(bool value);
+    void enable_translate(bool value);
 };
 
 #endif // RENDERSTATE_H

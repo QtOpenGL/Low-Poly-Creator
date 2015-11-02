@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent) :
   edit_vertex_state();
   remove_vertex_state();
   add_vertex_state();
+  translate_enable();
   connect(this, SIGNAL(change_view_top_left(int)),
           this->ui->openGLWidget_left_top, SLOT(change_camara(int)));
   connect(this, SIGNAL(change_view_top_right(int)),
@@ -24,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 }
 
-void  MainWindow::connect_updates_to_widgets() {
+void MainWindow::connect_updates_to_widgets() {
   // connect updates of opengl widgets
   connect(this->ui->openGLWidget_left_bottom, SIGNAL(update_frame()),
           this->ui->openGLWidget_left_top, SLOT(update_frame_from_extern()));
@@ -86,6 +87,17 @@ void MainWindow::remove_vertex_state() {
           this->ui->openGLWidget_right_bottom, SLOT(enable_vertex_remove(bool)));
   connect(this->ui->remove_vertices, SIGNAL(clicked(bool)),
           this->ui->openGLWidget_left_bottom, SLOT(enable_vertex_remove(bool)));
+}
+
+void MainWindow::translate_enable() {
+  connect(this->ui->translate, SIGNAL(clicked(bool)),
+          this->ui->openGLWidget_left_top, SLOT(enable_translate(bool)));
+  connect(this->ui->translate, SIGNAL(clicked(bool)),
+          this->ui->openGLWidget_left_bottom, SLOT(enable_translate(bool)));
+  connect(this->ui->translate, SIGNAL(clicked(bool)),
+          this->ui->openGLWidget_right_bottom, SLOT(enable_translate(bool)));
+  connect(this->ui->translate, SIGNAL(clicked(bool)),
+          this->ui->openGLWidget_left_bottom, SLOT(enable_translate(bool)));
 }
 
 MainWindow::~MainWindow() {

@@ -1,14 +1,3 @@
-/** *********************************************************************** **/
-/** *********************************************************************** **/
-/**     Created by:     Ruan (Baggins) Luies 23511354                       **/
-/**     email:          23511354@nwu.ac.za                                  **/
-/**     Project name:   Virtual Concierge Creator And Management System     **/
-/**     File Name:      ModelMesh.h                                         **/
-/**     From Date:      2015/02/24                                          **/
-/**     To Date:        2015/10/01                                          **/
-/** **********************************************************************  **/
-/** *********************************************************************** **/
-
 #ifndef MODELMESH_H
 #define MODELMESH_H
 #include <QVector>
@@ -26,8 +15,10 @@ public:
     void draw_mesh();
     void draw_vertices(float point_size);
     void draw_vertices_selected(float point_size);
+    void translate_selected(QVector3D translation);
+    void commit_changes();
     QVector<QVector2D> texture_coordinates;
-    QVector<QVector3D> vertices;
+    QVector<QVector3D> modified_vertices, original_vertices;
     QVector<QVector3D> normals;
     QVector<int> vertex_indices, uv_indices, normal_indices;
     bool load_obj_file(QString file_name);

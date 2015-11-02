@@ -23,7 +23,8 @@ RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
     mousedown_left(false),
     edit_vertex_enable(false),
     remove_vertex_enable(false),
-    add_vertex_enable(false)
+    add_vertex_enable(false),
+    translate_enable(false)
 {
     // enable antialiasing
     QSurfaceFormat format;
@@ -57,6 +58,10 @@ void RenderState::enable_vertex_remove(bool value) {
   this->remove_vertex_enable = value;
 }
 
+void RenderState::enable_translate(bool value) {
+  this->translate_enable = value;
+}
+
 void RenderState::initializeGL() {
     initializeOpenGLFunctions();
 }
@@ -67,17 +72,24 @@ void RenderState::update_frame_from_extern() {
 
 void RenderState::mouseMoveEvent(QMouseEvent *event) {
   emit this->update_frame();
-  if ( this->edit_vertex_enable && this->mousedown_left) {
-    for (int a = 0; a < CurrentScene::mesh_count(); a++) {
-      QMatrix4x4 translation;
-      translation.translate(*CurrentScene::get_position(a));
+  if (this->mousedown_left) {
+    if ( this->edit_vertex_enable ) {
+      for (int a = 0; a < CurrentScene::mesh_count(); a++) {
+        QMatrix4x4 translation;
+        translation.translate(*CurrentScene::get_position(a));
 
-      if (CurrentScene::mesh_draw(a)->select_vertices_box(*this->clicked_position,
-                                                          *this->current_position,
-                                                          translation,
-                                                          this->type_of_view) ) {
+        if (CurrentScene::mesh_draw(a)->select_vertices_box(*this->clicked_position,
+                                                            *this->current_position,
+                                                            translation,
+                                                            this->type_of_view) ) {
           qDebug() << CurrentScene::mesh_draw(a);
       }
+      }
+    }
+    if ( this->translate_enable ) {
+        for (int a = 0; a < CurrentScene::mesh_count(); a++) {
+          CurrentScene::mesh_draw(a)->translate_selected(-*this->clicked_position + *this->current_position);
+        }
     }
   }
   // alert mouse event's position (x)
@@ -128,7 +140,9 @@ void RenderState::mouseReleaseEvent(QMouseEvent *) {
   this->mousedown_right = false;
   this->mousedown_left = false;
   update();
-
+  for ( int i = 0; i < CurrentScene::mesh_count(); i++ ) {
+      CurrentScene::mesh_draw(i)->commit_changes();
+  }
 }
 
 void RenderState::draw_grid() {
@@ -192,6 +206,7 @@ void RenderState::mousePressEvent(QMouseEvent *event) {
     this->mousedown_left = true; // set for dragging the left button
     add_vertices(); // this will only happen when the vertices are addable
     edit_vertices(); // this will only happen when vertices can be edit
+    translate_vertices();
     emit this->update_frame();
   } else if(event->button() == Qt::RightButton) {
     this->mousedown_right = true;
@@ -334,6 +349,14 @@ void RenderState::paintGL() {
     draw_flat_box(*this->clicked_position, *this->current_position);
   }
 
+  if ( (this->mousedown_left) && (this->translate_enable) ) {
+    draw_line(*this->clicked_position,
+              *this->current_position,
+              this->view_matrix,
+              QMatrix4x4(),
+              QVector3D(1.0, 1.0, 1.0));
+  }
+
   for (int a = 0; a < CurrentScene::mesh_count(); a++) {
     QMatrix4x4 translation;
     translation.translate(*CurrentScene::get_position(a));
@@ -429,7 +452,7 @@ void RenderState::draw_shader(ModelMesh *mesh, int type) {
     const char *normals = "normal";
 
     // load the vertices to the shaders
-    this->shader_program->setAttributeArray(vert, mesh->vertices.constData());
+    this->shader_program->setAttributeArray(vert, mesh->modified_vertices.constData());
 
     // enable the shader attribute( vertices )
     this->shader_program->enableAttributeArray(vert);
@@ -559,6 +582,14 @@ void RenderState::add_vertices() {
 
 void RenderState::edit_vertices() {
   if ( this->edit_vertex_enable ) {
+    this->clicked_position = new QVector3D(this->current_position->x(),
+                                           this->current_position->y(),
+                                           this->current_position->z());
+  }
+}
+
+void RenderState::translate_vertices() {
+  if ( this->translate_enable ) {
     this->clicked_position = new QVector3D(this->current_position->x(),
                                            this->current_position->y(),
                                            this->current_position->z());
