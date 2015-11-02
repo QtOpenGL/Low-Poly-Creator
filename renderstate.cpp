@@ -5,21 +5,25 @@ RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
     shader_program(0),
     mouse_x(0),
     mouse_y(0),
-    mouse_right_clicked_x(0),
-    mouse_right_clicked_y(0),
-    mouse_relative_y_drag(0),
-    mouse_relative_x_drag(0),
-    prev_rotation_x(0),
-    prev_rotation_y(0),
     type_of_view(0),
     viewport_width(1),
     viewport_height(1),
+    mouse_right_clicked_x(0),
+    mouse_right_clicked_y(0),
+    mouse_relative_x_drag(0),
+    mouse_relative_y_drag(0),
+    prev_rotation_x(0),
+    prev_rotation_y(0),
     mouse_zoom(1000.0f),
     view_angle(45.0),
     position_camera(QVector3D()),
     camera_previous(QVector3D()),
     raycast_direction(QVector3D()),
-    mousedown_right(false)
+    mousedown_right(false),
+    mousedown_left(false),
+    edit_vertex_enable(false),
+    remove_vertex_enable(false),
+    add_vertex_enable(false)
 {
     // enable antialiasing
     QSurfaceFormat format;
@@ -39,6 +43,18 @@ RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
 
     //connect(this, SLOT(update_frame_from_extern()), this, SIGNAL(update_frame()));
     change_camara(2);
+}
+
+void RenderState::enable_vertex_edit(bool value) {
+  this->edit_vertex_enable = value;
+}
+
+void RenderState::enable_vertex_add(bool value) {
+  this->add_vertex_enable = value;
+}
+
+void RenderState::enable_vertex_remove(bool value) {
+  this->remove_vertex_enable = value;
 }
 
 void RenderState::initializeGL() {
@@ -91,12 +107,12 @@ int RenderState::sign(int x) {
 }
 
 void RenderState::mouseReleaseEvent(QMouseEvent *) {
-  //if ( this->mousedown_right ) {
+  if ( this->mousedown_right ) {
     this->prev_rotation_x = this->mouse_relative_y_drag;
     this->prev_rotation_y = this->mouse_relative_x_drag;
-  //}
+  }
   this->mousedown_right = false;
-
+  this->mousedown_left = false;
   update();
 
 }
@@ -158,14 +174,13 @@ void RenderState::draw_grid() {
 }
 
 void RenderState::mousePressEvent(QMouseEvent *event) {
-  if(event->button() == Qt::LeftButton){
-    CurrentScene::add_mesh(this->current_mesh,
-                           new QVector3D(this->current_position->x(),
-                                         this->current_position->y(),
-                                         this->current_position->z()));
+  if(event->button() == Qt::LeftButton) {
+    this->mousedown_left = true; // set for dragging the left button
+    add_vertices(); // this will only happen when the vertices are addable
+    edit_vertices(); // this will only happen when vertices can be edit
     emit this->update_frame();
   } else if(event->button() == Qt::RightButton) {
-    mousedown_right = true;
+    this->mousedown_right = true;
     this->clicked_position = new QVector3D(this->current_position->x(),
                                            this->current_position->y(),
                                            this->current_position->z());
@@ -301,8 +316,11 @@ void RenderState::paintGL() {
   this->current_position->setY(Pos.y());
 
   // draw line if right clicked
-  if(mousedown_right)
-    draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
+  if(mousedown_right || mousedown_left) {
+    draw_flat_box(*this->clicked_position, *this->current_position);
+   // draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
+    //draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
+  }
 
   for (int a = 0; a < CurrentScene::mesh_count(); a++) {
     QMatrix4x4 translation;
@@ -348,6 +366,29 @@ void RenderState::update_shaders(QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rota
 
     // use GL_TEXTURE0
     this->shader_program->setUniformValue("texture", 0);
+}
+
+void RenderState::draw_flat_box(QVector3D position1, QVector3D position2) {
+      draw_line(QVector3D(position1.x(), position1.y(), position1.z()),
+                QVector3D(position1.x(), position2.y(), position2.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+      draw_line(QVector3D(position1.x(), position1.y(), position1.z()),
+                QVector3D(position2.x(), position1.y(), position2.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+      draw_line(QVector3D(position1.x(), position1.y(), position1.z()),
+                QVector3D(position2.x(), position2.y(), position1.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+
+      draw_line(QVector3D(position2.x(), position1.y(), position1.z()),
+                QVector3D(position2.x(), position2.y(), position2.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+      draw_line(QVector3D(position1.x(), position2.y(), position1.z()),
+                QVector3D(position2.x(), position2.y(), position2.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+      draw_line(QVector3D(position1.x(), position1.y(), position2.z()),
+                QVector3D(position2.x(), position2.y(), position2.z()),
+                this->view_matrix, QMatrix4x4(), QVector3D(1, 1, 1));
+
 }
 
 void RenderState::draw_shader(ModelMesh *mesh) {
@@ -396,10 +437,10 @@ void RenderState::draw_shader(ModelMesh *mesh) {
    }
 
 void RenderState::draw_line(QVector3D point1,
-                           QVector3D point2,
-                           QMatrix4x4 world_view_projection,
-                           QMatrix4x4 model_view_projection,
-                           QVector3D color){
+                            QVector3D point2,
+                            QMatrix4x4 world_view_projection,
+                            QMatrix4x4 model_view_projection,
+                            QVector3D color) {
   QVector< QVector3D > temp_vertices;
   temp_vertices.push_back(point1);
   temp_vertices.push_back(point2);
@@ -459,6 +500,23 @@ QVector3D RenderState::intersect_plane(QVector3D u_dir,
       break;
     }
     return r_point + t * u_dir;// v(t) = r + t * r1
+}
+
+void RenderState::add_vertices() {
+  if ( this->add_vertex_enable ) {
+    CurrentScene::add_mesh(this->current_mesh,
+                           new QVector3D(this->current_position->x(),
+                                         this->current_position->y(),
+                                         this->current_position->z()));
+  }
+}
+
+void RenderState::edit_vertices() {
+  if ( this->edit_vertex_enable ) {
+    this->clicked_position = new QVector3D(this->current_position->x(),
+                                           this->current_position->y(),
+                                           this->current_position->z());
+  }
 }
 
 RenderState::~RenderState() {

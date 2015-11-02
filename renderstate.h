@@ -35,9 +35,12 @@ protected:
                    QMatrix4x4 model_view_projection,
                    QVector3D color);
     void draw_shader(ModelMesh *);
+    void draw_flat_box(QVector3D position1, QVector3D position2);
     void update_shaders(QMatrix4x4, QMatrix4x4, QMatrix4x4, QVector3D );
     void load_content();
     void draw_grid();
+    void edit_vertices();
+    void add_vertices();
     int sign(int x);
 
     // raycasting prototype
@@ -73,7 +76,11 @@ protected:
     QVector3D position_camera,
               camera_previous,
               raycast_direction;
-    bool mousedown_right;
+    bool mousedown_right,
+         mousedown_left,
+         edit_vertex_enable,
+         remove_vertex_enable,
+         add_vertex_enable;
 
   signals:
     void update_frame();
@@ -81,6 +88,9 @@ protected:
   private slots:
     void update_frame_from_extern();
     void change_camara(int type);
+    void enable_vertex_edit(bool value);
+    void enable_vertex_add(bool value);
+    void enable_vertex_remove(bool value);
 };
 
 #endif // RENDERSTATE_H
