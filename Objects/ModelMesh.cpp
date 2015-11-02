@@ -17,7 +17,7 @@
 #include <QtMath>
 #include "./Objects/ModelMesh.h"
 
-bool ModelMesh::LoadOBJ(QString file) {
+bool ModelMesh::load_obj_file(QString file) {
   vertices.clear();
   texture_coordinates.clear();
   normals.clear();
@@ -139,10 +139,10 @@ ModelMesh::~ModelMesh() {
 }
 
 ModelMesh::ModelMesh(QString file) {
-   LoadOBJ(file);
+   load_obj_file(file);
 }
 
-void ModelMesh::Draw() {
+void ModelMesh::draw_mesh() {
   glPointSize(3.0f);
     // Draw the vertices as triangles, not linked triangles, each triangle is seperated from the other
   glDrawArrays(GL_TRIANGLES, 0, vertices.size());

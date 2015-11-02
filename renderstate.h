@@ -9,7 +9,7 @@
 #include <QMouseEvent>
 #include <QVector3D>
 #include <QTimer>
-#include "Objects/ModelMesh.h"
+#include "./Objects/ModelMesh.h"
 #include "./currentscene.h"
 
 class RenderState : public QOpenGLWidget, protected QOpenGLFunctions {
@@ -17,6 +17,7 @@ class RenderState : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
     explicit RenderState(QWidget *parent = 0);
     ~RenderState();
+
 protected:
     void initializeGL();
     void resizeGL(int w, int h);
@@ -25,41 +26,53 @@ protected:
     void mousePressEvent(QMouseEvent *);
     void wheelEvent(QWheelEvent *);
     void mouseReleaseEvent(QMouseEvent *);
+
   private:
-    QMatrix4x4 pMatrix; // dynamic memory control not needed
-    void draw_model(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
-    void DrawLine(QVector3D point1,
-                  QVector3D point2,
-                  QMatrix4x4 world_view_projection,
-                  QMatrix4x4 model_view_projection,
-                  QVector3D color);
-    void ShaderDraw(ModelMesh *);
-    void UpdateShaders(QMatrix4x4 ,QMatrix4x4 , QMatrix4x4 /*, GLuint texture*/, QVector3D );
-    void LoadContent();
+    void draw_model(ModelMesh *, QMatrix4x4 , QMatrix4x4 , QMatrix4x4, QVector3D );
+    void draw_line(QVector3D point1,
+                   QVector3D point2,
+                   QMatrix4x4 world_view_projection,
+                   QMatrix4x4 model_view_projection,
+                   QVector3D color);
+    void draw_shader(ModelMesh *);
+    void update_shaders(QMatrix4x4, QMatrix4x4, QMatrix4x4, QVector3D );
+    void load_content();
     void draw_grid();
-    QSize m_viewportSize;
-    QOpenGLShaderProgram *m_program;
-    qreal m_t;
+    int sign(int x);
+
+    // raycasting prototype
+    QVector3D mouse_raycast(int, int, QMatrix4x4);
+
+    // intersection with y = 0
+    QVector3D intersect_plane(QVector3D direction,
+                              QVector3D point);
+
+    QMatrix4x4 projection_matrix,
+               view_matrix,
+               camera_transformation
+               ;
+    QOpenGLShaderProgram *shader_program;
     QVector3D *position,
-              *clicked_position;
-    ModelMesh *box;
+              *clicked_position,
+              *current_position;
+    ModelMesh *current_mesh;
     int mouse_x,
         mouse_y,
         dmouse_x,
-        dmouse_y;
-    float m_mouse_zoom;
-
-    // define a view matrix
-    QMatrix4x4 vMatrix;
-    QVector3D *m_current_position;
-    QVector3D m_position_camera, m_camera_prev, m_raycast;
-
-    // raycasting prototype
-    QVector3D mouseRayCast(int, int, QMatrix4x4);
-
-    // intersection with y=0
-    QVector3D intersectYnull(QVector3D, QVector3D);
-    QMatrix4x4 camera_transformation;
+        dmouse_y,
+        type_of_view,
+        viewport_width,
+        viewport_height,
+        mouse_right_clicked_x,
+        mouse_right_clicked_y,
+        mouse_relative_x_drag,
+        mouse_relative_y_drag,
+        prev_rotation_x,
+        prev_rotation_y;
+    float mouse_zoom, view_angle;
+    QVector3D position_camera,
+              camera_previous,
+              raycast_direction;
     bool mousedown_right;
 
   signals:

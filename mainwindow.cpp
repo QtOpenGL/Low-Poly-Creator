@@ -6,9 +6,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow) {
     ui->setupUi(this);
   connect_updates_to_widgets();
-  connect(this, SIGNAL(change_view(int)),
+  connect(this, SIGNAL(change_view_top_left(int)),
+          this->ui->openGLWidget_left_top, SLOT(change_camara(int)));
+  connect(this, SIGNAL(change_view_top_right(int)),
+          this->ui->openGLWidget_right_top, SLOT(change_camara(int)));
+  connect(this, SIGNAL(change_view_bottom_left(int)),
           this->ui->openGLWidget_left_bottom, SLOT(change_camara(int)));
-  emit change_view(0);
+  connect(this, SIGNAL(change_view_bottom_right(int)),
+          this->ui->openGLWidget_right_bottom, SLOT(change_camara(int)));
+  emit change_view_top_right(0);
+  emit change_view_top_left(1);
+  emit change_view_bottom_left(2);
+  emit change_view_bottom_right(3);
 }
 
 void  MainWindow::connect_updates_to_widgets() {

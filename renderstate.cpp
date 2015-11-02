@@ -1,26 +1,35 @@
 #include "renderstate.h"
+#include <math.h>
 
 RenderState::RenderState(QWidget *parent): QOpenGLWidget(parent),
-    m_program(0),
+    shader_program(0),
     mouse_x(0),
     mouse_y(0),
-    m_mouse_zoom(1000.0f),
-    m_position_camera(QVector3D()),
-    m_camera_prev(QVector3D()),
-    m_raycast(QVector3D()),
+    mouse_right_clicked_x(0),
+    mouse_right_clicked_y(0),
+    mouse_relative_y_drag(0),
+    mouse_relative_x_drag(0),
+    prev_rotation_x(0),
+    prev_rotation_y(0),
+    type_of_view(0),
+    viewport_width(1),
+    viewport_height(1),
+    mouse_zoom(1000.0f),
+    view_angle(45.0),
+    position_camera(QVector3D()),
+    camera_previous(QVector3D()),
+    raycast_direction(QVector3D()),
     mousedown_right(false)
 {
     // enable antialiasing
     QSurfaceFormat format;
-   // format.setDepthBufferSize(24);
     format.setSamples(4);
-   // format.setStencilBufferSize(8);
-  //  format.setVersion(3, 2);
-    //format.setProfile(QSurfaceFormat::CoreProfile);
     this->setFormat(format);
+
     clicked_position = new QVector3D(0, 0, 0);
+
     // set the current mouse position in 3D
-    m_current_position = new QVector3D(0, 0, 0);
+    this->current_position = new QVector3D(0, 0, 0);
 
     // set the position to initial null vector
     position = new QVector3D(0, 0, 0);
@@ -41,89 +50,162 @@ void RenderState::update_frame_from_extern() {
 }
 
 void RenderState::mouseMoveEvent(QMouseEvent *event) {
-    // alert mouse event's position (x)
-    mouse_x = event->x();
+  // alert mouse event's position (x)
+  mouse_x = event->x();
 
-    // alert mouse event's position (x)
-    mouse_y = event->y();
+  // alert mouse event's position (x)
+  mouse_y = event->y();
 
-    m_raycast = mouseRayCast(mouse_x, mouse_y, vMatrix);
-    if(mousedown_right) {
-      m_position_camera.setX(this->clicked_position->x() - m_current_position->x());
-      m_position_camera.setY(this->clicked_position->y() - m_current_position->y());
-      m_position_camera.setZ(this->clicked_position->z() - m_current_position->z());
-      // pan view
-      m_camera_prev.setX(m_camera_prev.x()-m_position_camera.x());
-      m_camera_prev.setY(m_camera_prev.y()-m_position_camera.y());
-      m_camera_prev.setZ(m_camera_prev.z()-m_position_camera.z());
-      m_position_camera = QVector3D();
-    }
-    // update openGL widget
-    update();
+  this->raycast_direction =
+          this->mouse_raycast(mouse_x,
+                              mouse_y,
+                              this->view_matrix);
+  if(mousedown_right) {
+    this->position_camera.setX(this->clicked_position->x() -
+                               this->current_position->x());
+    this->position_camera.setY(this->clicked_position->y() -
+                               this->current_position->y());
+    this->position_camera.setZ(this->clicked_position->z() -
+                               this->current_position->z());
+
+    // pan view
+    this->camera_previous.setX(this->camera_previous.x() -
+                               this->position_camera.x());
+    this->camera_previous.setY(this->camera_previous.y() -
+                               this->position_camera.y());
+    this->camera_previous.setZ(this->camera_previous.z() -
+                               this->position_camera.z());
+    this->position_camera = QVector3D();
+
+    this->mouse_relative_y_drag = this->prev_rotation_y + (this->mouse_right_clicked_y - this->mouse_y);
+    this->mouse_relative_x_drag = this->prev_rotation_x + (this->mouse_right_clicked_x - this->mouse_x);
+  }
+  // update openGL widget
+  update();
+}
+
+int RenderState::sign(int x) {
+  if ( x > 0 )
+    return 1;
+  else return -1;
 }
 
 void RenderState::mouseReleaseEvent(QMouseEvent *) {
- mousedown_right = false;
- update();
+  //if ( this->mousedown_right ) {
+    this->prev_rotation_x = this->mouse_relative_y_drag;
+    this->prev_rotation_y = this->mouse_relative_x_drag;
+  //}
+  this->mousedown_right = false;
+
+  update();
+
 }
 
 void RenderState::draw_grid() {
   const int max_lines = 32;
   for ( int x = -max_lines; x < max_lines + 1; x++ ) {
-  // draw horisontal lines
-    DrawLine(QVector3D(x ,0 ,-max_lines),
-             QVector3D(x ,0 ,max_lines),
-             vMatrix, QMatrix4x4(),
-             QVector3D(1.0, 1.0, 1.0));
-    // draw vertical lines
-    DrawLine(QVector3D(-max_lines ,0 ,x),
-             QVector3D(max_lines ,0 ,x),
-             vMatrix, QMatrix4x4(),
-             QVector3D(1.0, 1.0 ,1.0));
+      switch ( type_of_view ) {
+        case 0 :
+          // draw horisontal lines
+          draw_line(QVector3D(x ,0 ,-max_lines),
+                    QVector3D(x ,0 ,max_lines),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0, 1.0));
+          // draw vertical lines
+          draw_line(QVector3D(-max_lines ,0 ,x),
+                    QVector3D(max_lines ,0 ,x),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0 ,1.0));
+        break;
+        case 1 :
+          // draw horisontal lines
+          draw_line(QVector3D(0, x, -max_lines),
+                    QVector3D(0, x, max_lines),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0, 1.0));
+          // draw vertical lines
+          draw_line(QVector3D(0, -max_lines, x),
+                    QVector3D(0, max_lines, x),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0 ,1.0));
+        break;
+        case 2 :
+          // draw horisontal lines
+          draw_line(QVector3D(x, -max_lines, 0),
+                    QVector3D(x, max_lines, 0),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0, 1.0));
+          // draw vertical lines
+          draw_line(QVector3D(-max_lines, x, 0),
+                    QVector3D(max_lines, x, 0),
+                    this->view_matrix, QMatrix4x4(),
+                    QVector3D(1.0, 1.0 ,1.0));
+        break;
+      case 3 :
+        // draw horisontal lines
+        draw_line(QVector3D(x ,0 ,-max_lines),
+                  QVector3D(x ,0 ,max_lines),
+                  this->view_matrix, QMatrix4x4(),
+                  QVector3D(1.0, 1.0, 1.0));
+        // draw vertical lines
+        draw_line(QVector3D(-max_lines ,0 ,x),
+                  QVector3D(max_lines ,0 ,x),
+                  this->view_matrix, QMatrix4x4(),
+                  QVector3D(1.0, 1.0 ,1.0));
+      break;
+    }
   }
 }
 
 void RenderState::mousePressEvent(QMouseEvent *event) {
-    if(event->button() == Qt::LeftButton){
-      CurrentScene::add_mesh(this->box, new QVector3D(m_current_position->x(),
-                                                      m_current_position->y(),
-                                                      m_current_position->z()));
-      emit this->update_frame();
-    } else
-        if(event->button() == Qt::RightButton)
-        {
-            mousedown_right = true;
-            this->clicked_position = new QVector3D(m_current_position->x(),
-                                                   m_current_position->y(),
-                                                   m_current_position->z());
-        }
+  if(event->button() == Qt::LeftButton){
+    CurrentScene::add_mesh(this->current_mesh,
+                           new QVector3D(this->current_position->x(),
+                                         this->current_position->y(),
+                                         this->current_position->z()));
+    emit this->update_frame();
+  } else if(event->button() == Qt::RightButton) {
+    mousedown_right = true;
+    this->clicked_position = new QVector3D(this->current_position->x(),
+                                           this->current_position->y(),
+                                           this->current_position->z());
+    this->mouse_right_clicked_x = this->mouse_x;
+    this->mouse_right_clicked_y = this->mouse_y;
+  }
 }
 
-void RenderState::wheelEvent(QWheelEvent *event)
-{
-    m_mouse_zoom -= (float)event->delta()/3.0f;
-    if ( m_mouse_zoom < 5.0f )
-      m_mouse_zoom = 5.0f;
-    update();
+void RenderState::wheelEvent(QWheelEvent *event) {
+  this->mouse_zoom -= (float)event->delta()/3.0f;
+  if ( this->mouse_zoom < 5.0f )
+    this->mouse_zoom = 5.0f;
+  update();
 }
 
 void RenderState::change_camara(int type) {
   camera_transformation.setToIdentity();
   switch(type) {
     case 0:
+      this->view_angle = 11.25 / 64.0;
       camera_transformation.rotate(-90, 1, 0, 0);
       break;
     case 1:
+      this->view_angle = 11.25 / 64.0;
       camera_transformation.rotate(-90, 0, 1, 0);
       break;
     case 2:
+      this->view_angle = 11.25 / 64.0;
       camera_transformation.rotate(-90, 0, 0, 1);
       break;
     case 3:
-      camera_transformation.rotate(90, 1, 0, 0);
+      this->view_angle = 45.0;
+      this->projection_matrix.perspective(this->view_angle, (float) this->viewport_width / (float) this->viewport_height, 1.0f, 65536.0f);
+      camera_transformation.rotate(0, 0, 1, 0);
+      camera_transformation.rotate(-45, 1, 0, 0);
+
     break;
     case 4:
-      camera_transformation.rotate(90, 0, 1, 0);
+      camera_transformation.rotate(45, 0, 1, 0);
+      camera_transformation.rotate(45, 1, 0, 0);
     break;
     case 5:
       camera_transformation.rotate(90, 0, 0, 1);
@@ -132,39 +214,43 @@ void RenderState::change_camara(int type) {
       camera_transformation.rotate(-90, 1, 0, 0);
       break;
   }
+  this->type_of_view = type;
 }
 
 void RenderState::resizeGL(int w, int h) {
-    // setup the viewport for opengl
-    glViewport(0, 0, w, h);
+  this->viewport_width = w;
+  this->viewport_height = h;
 
-    // initialize the projection matrix
-    pMatrix.setToIdentity();
+  // setup the viewport for opengl
+  glViewport(0, 0, w, h);
+
+  // initialize the projection matrix
+  this->projection_matrix.setToIdentity();
 
     // set the projection matrix
-  pMatrix.perspective(11.25/ 64.0, (float) w / (float) h, 1.0f, 65536.0f);
+ this->projection_matrix.perspective(view_angle, (float) w / (float) h, 1.0f, 65536.0f);
   //pMatrix.ortho(-(float)w/h, (float)w/h, -1.0, 1.0, 1.0, 200.0);
 }
 
-void RenderState::LoadContent() {
+void RenderState::load_content() {
     // this initializes all the opengl functions
     initializeOpenGLFunctions();
+
     //load meshes
-    box = new ModelMesh(":/Sphere");
-    box->load_sphere(0.5, 12, 6);
+    this->current_mesh = new ModelMesh(":/Sphere");
+    this->current_mesh->load_sphere(0.5, 12, 6);
+
     // load shaders
-    m_program = new QOpenGLShaderProgram();
-    m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, "://Vertex");
-    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, "://Fragment");
-    m_program->link();
+    this->shader_program = new QOpenGLShaderProgram();
+    this->shader_program->addShaderFromSourceFile(QOpenGLShader::Vertex, "://Vertex");
+    this->shader_program->addShaderFromSourceFile(QOpenGLShader::Fragment, "://Fragment");
+    this->shader_program->link();
 }
 
 void RenderState::paintGL() {
-  vMatrix.setToIdentity();
+  this->view_matrix.setToIdentity();
   // whenever content is not loaded, load the content
-  if ( !m_program ) { LoadContent(); }
-  // set the uniform value t for the shader (give it a new value)
-  m_program->setUniformValue("t", (float) m_t);
+  if ( !this->shader_program ) { this->load_content(); }
   // enable the scene's depth mask
   glDepthMask(GL_TRUE);
   // clear the depth z = 0.0f -> 1.0f
@@ -179,35 +265,63 @@ void RenderState::paintGL() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // transform the camera's position with respect to the rotation matrix
-  QVector3D cameraPosition = camera_transformation * QVector3D(0, 0, m_mouse_zoom) ;
+  QVector3D cameraPosition = camera_transformation * QVector3D(0, 0, this->mouse_zoom);
+
   // define the direction of the camera's up vector
   QVector3D cameraUpDirection = camera_transformation * QVector3D(0, 1.0, 0);
+
   // implement and transform the camera
-  vMatrix.lookAt(cameraPosition, QVector3D(), cameraUpDirection);
-  vMatrix.translate(m_camera_prev);
+  this->view_matrix.lookAt(cameraPosition, QVector3D(), cameraUpDirection);
+  this->view_matrix.translate(this->camera_previous);
 
   // return the position of the ray intersection with the y-axis
-  QVector3D Pos  = intersectYnull(m_raycast, QVector3D(0, m_mouse_zoom, 0) - m_camera_prev );
+  QVector3D camara_zoom = QVector3D(- this->camera_previous.x(),
+                                    - this->camera_previous.y(),
+                                    - this->camera_previous.z());
+  //this->view_matrix.rotate(this->prev_rotation_y, 1, 0, 0);
+  //this->view_matrix.rotate(this->prev_rotation_x, 0, 1, 0);
+  switch ( type_of_view ) {
+   case 0 : camara_zoom.setY( camara_zoom.y() + this->mouse_zoom );
+   break;
+   case 1 : camara_zoom.setX( camara_zoom.x() - this->mouse_zoom );
+   break;
+   case 2 : camara_zoom.setZ( camara_zoom.z() + this->mouse_zoom );
+   break;
+   case 3 : this->view_matrix.rotate(-this->mouse_relative_y_drag, 1.0, 0, 0);
+            this->view_matrix.rotate(-this->mouse_relative_x_drag, 0, 1.0, 0);
+           // this->view_matrix.rotate(-45-this->mouse_y, 1, 0, 0);
+
+   break;
+  }
+  QVector3D Pos  = this->intersect_plane(this->raycast_direction, camara_zoom);
+
   // update current position
-  m_current_position->setX(Pos.x());
-  m_current_position->setZ(Pos.z());
-  m_current_position->setY(Pos.y());
+  this->current_position->setX(Pos.x());
+  this->current_position->setZ(Pos.z());
+  this->current_position->setY(Pos.y());
 
   // draw line if right clicked
   if(mousedown_right)
-    DrawLine(*this->clicked_position, *m_current_position, vMatrix, QMatrix4x4(), QVector3D(1,1,1));
+    draw_line(*this->clicked_position, *this->current_position,this->view_matrix, QMatrix4x4(), QVector3D(1,1,1));
 
   for (int a = 0; a < CurrentScene::mesh_count(); a++) {
     QMatrix4x4 translation;
     translation.translate(*CurrentScene::get_position(a));
-    draw_model(CurrentScene::mesh_draw(a), vMatrix, translation,QMatrix4x4(),QVector3D(0.3, 0.0, 0.0));
+    draw_model(CurrentScene::mesh_draw(a),
+               this->view_matrix,
+               translation,
+               QMatrix4x4(),
+               QVector3D(0.3, 0.0, 0.0));
   }
   draw_grid();
   QMatrix4x4 translation;
   translation.translate(Pos);
-  draw_model(box, vMatrix,translation, QMatrix4x4(),QVector3D());
+  draw_model(this->current_mesh,this->view_matrix,
+             translation,
+             QMatrix4x4(),
+             QVector3D());
   // release the program for this frame
-  m_program->release();
+  this->shader_program->release();
   // disable the cullmode for the frame
   glDisable(GL_CULL_FACE);
   // disable the depthtest for the frame
@@ -216,27 +330,27 @@ void RenderState::paintGL() {
   glFinish();
 }
 
-void RenderState::UpdateShaders(QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
+void RenderState::update_shaders(QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
     // bind the current shader code
-    m_program->bind();
+    this->shader_program->bind();
 
     // update the colour of the object
-    m_program->setUniformValue("ambient_color", color);
+    this->shader_program->setUniformValue("ambient_color", color);
 
     // change the rotation of the object in the shader
-    m_program->setUniformValue("rotationMatrix", rotate);
+    this->shader_program->setUniformValue("rotationMatrix", rotate);
 
     // update model view projection
-    m_program->setUniformValue("mvpMatrix", mvp * rotate);
+    this->shader_program->setUniformValue("mvpMatrix", mvp * rotate);
 
     // update world view projection in the shader
-    m_program->setUniformValue("wvpMatrix", pMatrix * wvp);
+    this->shader_program->setUniformValue("wvpMatrix",this->projection_matrix * wvp);
 
     // use GL_TEXTURE0
-    m_program->setUniformValue("texture", 0);
+    this->shader_program->setUniformValue("texture", 0);
 }
 
-void RenderState::ShaderDraw(ModelMesh *box) {
+void RenderState::draw_shader(ModelMesh *mesh) {
 
     // convert the qstring to c-string for opengl purposes, this is the vertex variable in the shader files
     const char *vert ="vertex";//= vertex.toStdString().c_str();
@@ -248,93 +362,110 @@ void RenderState::ShaderDraw(ModelMesh *box) {
     const char *normals = "normal";
 
     // load the vertices to the shaders
-    m_program->setAttributeArray(vert, box->vertices.constData());
+    this->shader_program->setAttributeArray(vert, mesh->vertices.constData());
 
     // enable the shader attribute( vertices )
-    m_program->enableAttributeArray(vert);
+    this->shader_program->enableAttributeArray(vert);
 
     // load the normals to the shaders
-    m_program->setAttributeArray(normals, box->normals.constData());
+    this->shader_program->setAttributeArray(normals, this->current_mesh->normals.constData());
 
     // enable the shader attribute( normals )
-    m_program->enableAttributeArray(normals);
+    this->shader_program->enableAttributeArray(normals);
 
     // load the texture coordinates to the shaders
-    m_program->setAttributeArray(textureCoordinate, box->texture_coordinates.constData());
+    this->shader_program->setAttributeArray(textureCoordinate, this->current_mesh->texture_coordinates.constData());
 
     // enable the texture attribute
-    m_program->enableAttributeArray(textureCoordinate);
+    this->shader_program->enableAttributeArray(textureCoordinate);
 
     // draw the opengl vertices
-    box->Draw();
+    this->current_mesh->draw_mesh();
 
     // disable the vertex attributes
-    m_program->disableAttributeArray(vert);
+    this->shader_program->disableAttributeArray(vert);
 
     // disable the normal attributes
-    m_program->disableAttributeArray(normals);
+    this->shader_program->disableAttributeArray(normals);
 
     // disable the Texture coordinates attributes
-    m_program->disableAttributeArray(textureCoordinate);
+    this->shader_program->disableAttributeArray(textureCoordinate);
 
     // release the current updated shader code (awaiting next frame)
-    m_program->release();
+    this->shader_program->release();
    }
 
-void RenderState::DrawLine(QVector3D point1,
+void RenderState::draw_line(QVector3D point1,
                            QVector3D point2,
                            QMatrix4x4 world_view_projection,
                            QMatrix4x4 model_view_projection,
                            QVector3D color){
-     QVector< QVector3D > temp_vertices;
-     temp_vertices.push_back(point1);
-     temp_vertices.push_back(point2);
-    UpdateShaders(world_view_projection, model_view_projection, QMatrix4x4(), color);
-    const char *vert ="vertex";// convert the qstring to c-string for opengl purposes
-    const char *normals = "normal";// convert the qstring to c-string for opengl purposes
-    m_program->setAttributeArray(vert, temp_vertices.constData());//load the vertices to the shaders
-    m_program->enableAttributeArray(vert);//enable the shader attribute( vertices )
-    m_program->setAttributeArray(normals, temp_vertices.constData());//load the normals to the shaders
-    m_program->enableAttributeArray(normals);//enable the shader attribute( vertices )
-    glLineWidth(1.0);
-    glDrawArrays(GL_LINES, 0, temp_vertices.size());
-    m_program->disableAttributeArray(vert);// disable the vertex attributes
-    m_program->disableAttributeArray(normals);// disable the normal attributes
-    m_program->release(); // release the current updated shader code (awaiting next frame)
-    temp_vertices.clear();
+  QVector< QVector3D > temp_vertices;
+  temp_vertices.push_back(point1);
+  temp_vertices.push_back(point2);
+  this->update_shaders(world_view_projection, model_view_projection, QMatrix4x4(), color);
+  const char *vert ="vertex";// convert the qstring to c-string for opengl purposes
+  const char *normals = "normal";// convert the qstring to c-string for opengl purposes
+  this->shader_program->setAttributeArray(vert, temp_vertices.constData());//load the vertices to the shaders
+  this->shader_program->enableAttributeArray(vert);//enable the shader attribute( vertices )
+  this->shader_program->setAttributeArray(normals, temp_vertices.constData());//load the normals to the shaders
+  this->shader_program->enableAttributeArray(normals);//enable the shader attribute( vertices )
+  glLineWidth(1.0);
+  glDrawArrays(GL_LINES, 0, temp_vertices.size());
+  this->shader_program->disableAttributeArray(vert);// disable the vertex attributes
+  this->shader_program->disableAttributeArray(normals);// disable the normal attributes
+  this->shader_program->release(); // release the current updated shader code (awaiting next frame)
+  temp_vertices.clear();
 }
 
-void RenderState::draw_model(ModelMesh *box, QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
-     UpdateShaders(wvp, mvp, rotate, color);
-     ShaderDraw(box);
+void RenderState::draw_model(ModelMesh *mesh, QMatrix4x4 wvp, QMatrix4x4 mvp, QMatrix4x4 rotate, QVector3D color) {
+  this->update_shaders(wvp,
+                       mvp,
+                       rotate,
+                       color);
+  this->draw_shader(mesh);
 }
 
-QVector3D RenderState::mouseRayCast(int mx,
-                                  int my,
-                                  QMatrix4x4 view_matrix) {
+QVector3D RenderState::mouse_raycast(int mx,
+                                     int my,
+                                     QMatrix4x4 view_matrix) {
     float nx = (2.0f * mx) / this->width() - 1.0f; // normalize the x-mouse position
     float ny = 1.0f - (2.0f * my) / this->height();// normalize the y-mouse position
 
-    QVector4D ray_clip = QVector4D(nx,ny,-1,1.0); // clip the x,y,z values between -1:1
-    QMatrix4x4 pInverse = pMatrix.inverted(NULL);// invert the projection
+    QVector4D ray_clip = QVector4D(nx, ny, -1, 1.0); // clip the x,y,z values between -1:1
+    QMatrix4x4 pInverse =this->projection_matrix.inverted(NULL);// invert the projection
     QMatrix4x4 vInverse = view_matrix.inverted(NULL);// invert the view
     QVector4D ray_eye = pInverse*ray_clip; // "convert" the normalized ray to the projection values
     ray_eye = QVector4D(ray_eye.x(),ray_eye.y(),-1.0,0);// change the w-value of the vector for matrix manipulation purposes
-    QVector4D ray_wor4 = vInverse*ray_eye; // "convert" the new ray to the view values
+    QVector4D ray_wor4 = vInverse * ray_eye; // "convert" the new ray to the view values
     QVector3D ray_wor = ray_wor4.toVector3D(); // take the x,y,z values of the new position
     ray_wor.normalize();// make the ray a unit vector
 
     return ray_wor; // return the raycast of the 2D mouse in the 3D world view projection
 }
 
-QVector3D RenderState::intersectYnull(QVector3D u_dir, QVector3D r_point) {
-    float t =0.0;//t determines the point of intersection
-    if(u_dir.y() != 0)// (1/0) validation
-    t = -r_point.y()/u_dir.y(); // t=-r1.y/r (calculus)
-    return r_point+t*u_dir;// v(t)=r+t*r1
+QVector3D RenderState::intersect_plane(QVector3D u_dir,
+                                       QVector3D r_point) {
+    float t = 0.0;//t determines the point of intersection
+    switch ( type_of_view ) {
+      case 0 : if ( u_dir.y() != 0 )// (1/0) validation
+                 t = -r_point.y() / u_dir.y(); // t = -r1.y / r (calculus)
+      break;
+      case 1 : if ( u_dir.x() != 0 )// (1/0) validation
+                 t = -r_point.x() / u_dir.x(); // t = -r1.x / r (calculus)
+      break;
+      case 2 : if ( u_dir.z() != 0 )// (1/0) validation
+                 t = - r_point.z() / u_dir.z(); // t = -r1.x / r (calculus)
+      break;
+    }
+    return r_point + t * u_dir;// v(t) = r + t * r1
 }
 
 RenderState::~RenderState() {
-
+  delete this->shader_program;
+  delete this->position;
+  delete this->clicked_position;
+  delete this->current_mesh;
+  delete this->current_position;
 }
 

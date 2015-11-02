@@ -21,12 +21,12 @@ class ModelMesh {
 public:
     ModelMesh(QString);
     ~ModelMesh();
-    void Draw();
+    void draw_mesh();
     QVector<QVector2D> texture_coordinates;
     QVector<QVector3D> vertices;
     QVector<QVector3D> normals;
     QVector<int> vertex_indices, uv_indices, normal_indices;
-    bool LoadOBJ(QString);
+    bool load_obj_file(QString file_name);
     bool load_sphere(float radius, int stacks, int slices);
 };
 

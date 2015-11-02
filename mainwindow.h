@@ -22,7 +22,10 @@ private:
 signals:
     void place_node(); // allows a node to be placed
     void node_links(); // allow nodes to be linkeds
-    void change_view(int type);
+    void change_view_top_left(int type);
+    void change_view_top_right(int type);
+    void change_view_bottom_left(int type);
+    void change_view_bottom_right(int type);
 };
 
 #endif // MAINWINDOW_H
