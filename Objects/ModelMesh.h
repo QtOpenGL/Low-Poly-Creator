@@ -20,7 +20,7 @@ public:
     QVector<QVector2D> texture_coordinates;
     QVector<QVector3D> modified_vertices, original_vertices;
     QVector<QVector3D> normals;
-    QVector<int> vertex_indices, uv_indices, normal_indices;
+    QVector<unsigned int> vertex_indices, uv_indices, normal_indices;
     bool load_obj_file(QString file_name);
     bool load_sphere(float radius, int stacks, int slices);
     bool select_vertices_box(QVector3D position1,

@@ -5,6 +5,7 @@
 #include <QVector3D>
 #include <QString>
 #include <QtMath>
+#include <QDebug>
 #include "./Objects/ModelMesh.h"
 
 ModelMesh::ModelMesh(QString file) {
@@ -52,9 +53,11 @@ bool ModelMesh::load_obj_file(QString file) {
                     if(list[0]=="vn")
                     {
                         float vertexnormal[list.count()];
-                        for(int i = 0;i<list.count()-1;i++)
-                             QTextStream(&list[i+1])>>vertexnormal[i];
-                        temp_normals.push_back(QVector3D(vertexnormal[0],vertexnormal[1],vertexnormal[2]));
+                        for ( int i = 0; i < list.count() - 1; i++ )
+                          QTextStream(&list[i+1])>>vertexnormal[i];
+                          temp_normals.push_back(QVector3D(vertexnormal[0],
+                                                           vertexnormal[1],
+                                                           vertexnormal[2]));
                     }else
                         if(list[0] == "f")
                         {
@@ -100,25 +103,104 @@ bool ModelMesh::load_obj_file(QString file) {
  }
 
 bool ModelMesh::load_sphere(float radius, int stacks, int slices) {
-  original_vertices.clear();
-  modified_vertices.clear();
-  texture_coordinates.clear();
-  normals.clear();
-  vertex_indices.clear();
+  this->original_vertices.clear();
+  this->modified_vertices.clear();
+  this->texture_coordinates.clear();
+  this->normals.clear();
+  this->vertex_indices.clear();
+  this->selected_vertices.clear();
 
   const float PI_times_2 = 2 * 3.141592654f;
   const float PI_slices = PI_times_2 / slices;
-  const float PI_stacks = PI_times_2 / stacks;
-  for ( int sl = 0; sl < slices; sl++) {
-    for ( int st = 0; st < stacks; st++) {
-      modified_vertices.push_back(QVector3D(radius * sin(PI_slices * sl) * sin(PI_stacks * st),
-                                   radius * cos(PI_stacks * st),
-                                   radius * cos(PI_slices * sl) * sin(PI_stacks * st)));
-      original_vertices.push_back(QVector3D(radius * sin(PI_slices * sl) * sin(PI_stacks * st),
-                                            radius * cos(PI_stacks * st),
-                                            radius * cos(PI_slices * sl) * sin(PI_stacks * st)));
+  const float PI_stacks = PI_times_2 / (stacks * 2);
+  int total_vertices = 0;
+
+  // add single top vertex
+  modified_vertices.push_back(QVector3D(0, radius ,0));
+  original_vertices.push_back(QVector3D(0, radius ,0));
+  // add the top level slice indices
+  for ( int tsl = 1; tsl < slices; tsl++) {
+    this->vertex_indices.push_back(0);
+    this->vertex_indices.push_back(tsl);
+    this->vertex_indices.push_back(tsl + 1);
+  }
+  // add seam triangle
+  this->vertex_indices.push_back(0);
+  this->vertex_indices.push_back(slices);
+  this->vertex_indices.push_back(1);
+
+  for ( int st = 1; st < stacks; st++) {
+    for ( int sl = 0; sl < slices; sl++) {
+      modified_vertices.push_back(
+                QVector3D(radius * sin(PI_slices * sl) *
+                          sin(PI_stacks * st),
+                          radius * cos(PI_stacks * st),
+                          radius * cos(PI_slices * sl) *
+                          sin(PI_stacks * st)));
+      original_vertices.push_back(
+                QVector3D(radius * sin(PI_slices * sl) *
+                          sin(PI_stacks * st),
+                          radius * cos(PI_stacks * st),
+                          radius * cos(PI_slices * sl) *
+                          sin(PI_stacks * st)));
+      // add one side slice triangles
+      if ( stacks - 1 > st ) {
+        if ( sl + 1 < slices ) {
+          this->vertex_indices.push_back(sl + 1 + stacks * (st - 1) );
+          this->vertex_indices.push_back(sl + stacks + stacks * (st - 1) + 2 );
+          this->vertex_indices.push_back(sl + 2 + stacks * (st - 1));
+
+          this->vertex_indices.push_back(sl + 1 + stacks * (st - 1) );
+          this->vertex_indices.push_back(sl + stacks + stacks * (st - 1) + 1);
+          this->vertex_indices.push_back(sl + stacks + stacks * (st - 1) + 2 );
+
+        } else {
+          if(sl -1 < slices) {
+            this->vertex_indices.push_back(slices + stacks * (st - 1) );
+            this->vertex_indices.push_back(sl + stacks + stacks * (st - 2) + 2 );
+            this->vertex_indices.push_back(sl + 2 + stacks * (st - 2));
+
+            this->vertex_indices.push_back(sl + stacks * (st - 1) + 2);
+            this->vertex_indices.push_back(slices + stacks + stacks * (st - 2) );
+            this->vertex_indices.push_back(sl + stacks + stacks * (st - 1) + 1);
+          }
+        }
+      }
+      // add second slice triangles
+      /*this->vertex_indices.push_back(sl + stacks*st + 1);
+      this->vertex_indices.push_back(sl + stacks*st + 2);
+      this->vertex_indices.push_back(sl + 1 + stacks * (st - 1));
+      qDebug() << sl << sl + stacks + 1 << sl + 1;*/
+      total_vertices++;
     }
   }
+  // add single bottom vertex
+  modified_vertices.push_back(QVector3D(0, -radius ,0));
+  original_vertices.push_back(QVector3D(0, -radius ,0));
+ // add the bottom level slice indices
+  for ( int tsl = 1; tsl < slices; tsl++) {
+    this->vertex_indices.push_back(total_vertices + 1);
+    this->vertex_indices.push_back(tsl + 1 + (stacks - 2) * slices);
+    this->vertex_indices.push_back(tsl + (stacks - 2) * slices);
+  }
+  // add seam triangle for bottom vertex
+  this->vertex_indices.push_back(total_vertices + 1);
+  this->vertex_indices.push_back(1 + (stacks - 2) * slices);
+  this->vertex_indices.push_back((stacks - 2) * slices + slices);
+
+  /*modified_vertices.push_back(QVector3D(0, 1, 0));
+  modified_vertices.push_back(QVector3D(0, -1, 0));
+  modified_vertices.push_back(QVector3D(1, 0, 1));
+
+  original_vertices.push_back(QVector3D(0, 1, 0));
+  original_vertices.push_back(QVector3D(0, -1, 0));
+  original_vertices.push_back(QVector3D(1, 0, 1));
+
+  vertex_indices.push_back(0);
+  vertex_indices.push_back(1);
+  vertex_indices.push_back(2);*/
+
+
   /*// For each vertex of each triangle
   for( int i = 0; i < vertex_indices.size(); i++ ){
     vertices.push_back(vertex);
@@ -144,7 +226,10 @@ void ModelMesh::translate_selected(QVector3D translation) {
   }
 }
 
-bool ModelMesh::select_vertices_box(QVector3D position1, QVector3D position2, QMatrix4x4 modifier, int view_type) {
+bool ModelMesh::select_vertices_box(QVector3D position1,
+                                    QVector3D position2,
+                                    QMatrix4x4 modifier,
+                                    int view_type) {
   bool vertex_selected = false;
   this->selected_vertices.clear();
   float max_x = position1.x() > position2.x() ? position1.x() : position2.x();
@@ -204,8 +289,13 @@ void ModelMesh::draw_vertices(float point_size) {
 }
 
 void ModelMesh::draw_mesh() {
-    // Draw the vertices as triangles, not linked triangles, each triangle is seperated from the other
-  glDrawArrays(GL_TRIANGLES, 0, modified_vertices.size());
+    // Draw the vertices as triangles, not linked triangles,
+    // each triangle is seperated from the other
+  //glDrawArrays(GL_TRIANGLES, 0, modified_vertices.size());
+  glDrawElements(GL_TRIANGLES,
+                 this->vertex_indices.count(),
+                 GL_UNSIGNED_INT,
+                 this->vertex_indices.constData() );
 }
 
 void ModelMesh::commit_changes() {

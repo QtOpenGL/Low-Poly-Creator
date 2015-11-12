@@ -282,7 +282,7 @@ void RenderState::load_content() {
 
     //load meshes
     this->current_mesh = new ModelMesh(":/Sphere");
-    this->current_mesh->load_sphere(0.5, 12, 6);
+    this->current_mesh->load_sphere(0.5, 6, 6);
 
     // load shaders
     this->shader_program = new QOpenGLShaderProgram();
@@ -379,7 +379,7 @@ void RenderState::paintGL() {
 
   }
   draw_grid();
-  if ( this->add_vertex_enable ) {
+  if ( this->add_vertex_enable && ( this->type_of_view != 3 ) ) {
     QMatrix4x4 translation;
     translation.translate(Pos);
     draw_model(this->current_mesh,this->view_matrix,
