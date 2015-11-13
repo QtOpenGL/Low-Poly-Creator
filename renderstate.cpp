@@ -282,7 +282,7 @@ void RenderState::load_content() {
 
     //load meshes
     this->current_mesh = new ModelMesh(":/Sphere");
-    this->current_mesh->load_sphere(0.5, 6, 6);
+    //this->current_mesh->load_sphere(0.5, 6, 6);
 
     // load shaders
     this->shader_program = new QOpenGLShaderProgram();
@@ -471,8 +471,16 @@ void RenderState::draw_shader(ModelMesh *mesh, int type) {
     // draw the opengl vertices
     switch ( type ) {
       case 0: mesh->draw_mesh(); break;
-      case 1: mesh->draw_vertices(3.0f); break;
-      case 2: mesh->draw_vertices_selected(3.0f); break;
+      case 1:
+        glDisable(GL_DEPTH_TEST) ;
+        mesh->draw_vertices(3.0f);
+        glEnable(GL_DEPTH_TEST) ;
+        break;
+      case 2:
+        glDisable(GL_DEPTH_TEST) ;
+        mesh->draw_vertices_selected(3.0f);
+        glEnable(GL_DEPTH_TEST) ;
+        break;
       default: this->current_mesh->draw_mesh(); break;
     }
     // disable the vertex attributes

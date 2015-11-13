@@ -291,11 +291,11 @@ void ModelMesh::draw_vertices(float point_size) {
 void ModelMesh::draw_mesh() {
     // Draw the vertices as triangles, not linked triangles,
     // each triangle is seperated from the other
-  //glDrawArrays(GL_TRIANGLES, 0, modified_vertices.size());
-  glDrawElements(GL_TRIANGLES,
+  glDrawArrays(GL_TRIANGLES, 0, modified_vertices.size());
+  /*glDrawElements(GL_TRIANGLES,
                  this->vertex_indices.count(),
                  GL_UNSIGNED_INT,
-                 this->vertex_indices.constData() );
+                 this->vertex_indices.constData() );*/
 }
 
 void ModelMesh::commit_changes() {
